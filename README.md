@@ -3,7 +3,7 @@ This is a repository for the Assignment 7 for COL106 IIT Delhi
 ## Part 1
 ## Part 2
 ### Different Algorithms
-- TF-IDF (Term Frequency-Inverse Document Frequency) :
+- TF-IDF (Term Frequency-Inverse Document Frequency) : https://ieeexplore.ieee.org/abstract/document/8492945
 - Vector Space Model : TF-IDF with consine(check jaccard as well) similarity
 - BM25 (Best Matching 25):
 - Okapi BM25F:

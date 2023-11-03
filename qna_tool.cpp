@@ -7,11 +7,17 @@ using namespace std;
 #define FILENAME "mahatma-gandhi-collected-works-volume-1.txt"
 
 QNA_tool::QNA_tool(){
-    // Implement your function here  
+    // Implement your function here
+    // Dict* dict = new Dict();  
 }
 
 QNA_tool::~QNA_tool(){
     // Implement your function here  
+}
+
+Node* QNA_tool::get_top_k_para(string question, int k) {
+    // Implement your function here
+    
 }
 
 void QNA_tool::query(string question, string filename){
