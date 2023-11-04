@@ -28,6 +28,7 @@ public:
 		}
 	}
 };
+#include <vector>
 //AVLMap implementation
 template <class T,class X>
 class AVLMap{
@@ -101,6 +102,12 @@ private:
 		else if(r->d<d)return find(d,r->right);
 		else return find(d,r->left);
 	}
+	void get_all(Node* r,vector<pair<T,X>>& ans){
+		if(!r)return;
+		get_all(r->left,ans);
+		ans.push_back({r->d,r->v});
+		get_all(r->right,ans);
+	}
 public:
 	AVLMap(){
 		root=nullptr;
@@ -113,11 +120,25 @@ public:
 		if(!x)root=insert(d,v,root);
 		else x->v=v;
 	}
+	bool exist(T d){
+		return find(d,root)!=nullptr;
+	}
+	Node* find(T d){
+		return find(d,root);
+	}
 	X get(T d){
 
 		Node* x=find(d,root);
 		if(!x)return NULL;
 		else return x->v;
+	}
+	void increase_by_x(T d,X v){
+		Node* x=find(d,root);
+		if(!x)insert(d,v);
+		else x->v+=v;
+	}	
+	void get_all(vector<pair<T,X>>& ans){
+		get_all(root,ans);
 	}
 };
 
@@ -126,10 +147,12 @@ public:
 template <class t,class d>
 class Tries{
 public:
+	long long int total;
 	AVLMap<char,Tries*> child;
 	AVLMap<t,d> data;
-	int c_val;
-	void insert(string x,int c_val,int i){//initially pass parameter 0
+	long long int c_val;
+	Tries():total(0),c_val(0){}
+	void insert(string x,long long int c_val,int i){//initially pass parameter 0
 		if(i==x.length()){this->c_val=c_val;return;}
 		Tries* f=child.get(x[i]);
 		if(!f){
@@ -147,13 +170,30 @@ public:
 		}
 		f->insert(x,a,b,i+1);
 	}
-	Tries* get(string x,int i=0){
+	Tries* get(string x,int i){
 		if(i==x.length()){return this;}
 		Tries* f=child.get(x[i]);
 		if(!f){
 			return nullptr;
 		} 
 		return f->get(x,i+1);
+	}
+	void increase_by_1(string x,t a,int i){
+		if(i==x.length()){
+			total+=1;
+			if(!data.exist(a))
+			data.insert(a,1);
+			else{//check this part
+				data.find(a)->v=data.find(a)->v+1;
+			}
+			return;
+		}
+		Tries* f=child.get(x[i]);
+		if(!f){
+			child.insert(x[i],new Tries());
+			f=child.get(x[i]);
+		}
+		f->increase_by_1(x,a,i+1);
 	}
 };
 
