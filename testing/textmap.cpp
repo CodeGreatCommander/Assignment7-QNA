@@ -68,6 +68,7 @@ vector<string> rake(string sentence){
     words.push_back(word);
     merge_sort(words,0,words.size()-1);
     vector<string> ans;
+    if(words.size()==0)return ans;
     ans.push_back(words[0]);
     for(int i=1;i<words.size();i++){
         if(words[i]!=words[i-1])
@@ -105,6 +106,7 @@ struct Graph_Node{
 struct Graph{
     vector<Graph_Node*> nodes;
     vector<vector<double>> adj;
+    vector<double> page_rank;
     void add_node(vector<string> words,int book,int para){
         Graph_Node* temp=new Graph_Node(words,book,para);
         adj.push_back(vector<double>());
@@ -128,41 +130,37 @@ struct Graph{
             }
         }
     }
-    vector<double> doomsday(vector<string>& query){
+    void calculate_page_rank(){
         normalise();
-        vector<double> ans(nodes.size(),1);
+        page_rank=vector<double>(nodes.size(),1.0/nodes.size());
         double total=0;
-        for(int i=0;i<nodes.size();i++){
-            ans[i]+=calcualte_similarity(nodes[i]->words,query);
-            total+=ans[i];
-        }
-        for(int i=0;i<nodes.size();i++){
-            ans[i]/=total;
-        }
-        for(auto x:ans)
-        cout<<x<<" ";
-        cout<<endl;
         for(int _=0;_<49;_++){
             for(int i=0;i<nodes.size();i++){
                 double sum=0;
                 for(int j=0;j<nodes.size();j++){
-                    sum+=adj[j][i]*ans[j];
+                    sum+=adj[j][i]*page_rank[j];
                 }
-                if(sum>ans[i]){
-                    ans[i]=sum;
+                if(sum>page_rank[i]){
+                    page_rank[i]=sum;
                 }
             }
+        }
+    }
+    vector<pair<pair<int,int>,double>> get_page_rank(){
+        vector<pair<pair<int,int>,double>> ans;
+        for(int i=0;i<nodes.size();i++){
+            ans.push_back({{nodes[i]->book,nodes[i]->para},page_rank[i]});
         }
         return ans;
     }
     void print_all(){
         for(int i=0;i<adj.size();i++){
             for(int j=0;j<adj.size();j++){
-                cout<<adj[i][j]<<" ";
+                std::cout<<adj[i][j]<<" ";
             }
-            cout<<endl;
+            std::cout<<endl;
         }
-        cout<<endl;
+        std::cout<<endl;
     }
     ~Graph(){
         for(int i=0;i<nodes.size();i++){
@@ -171,45 +169,58 @@ struct Graph{
     }
 };
 
+// #define FILENAME "../MKGandhi/mahatma-gandhi-collected-works-volume-"
+// #include <fstream>
+// int main() {
 
-int main() {
-    auto start = chrono::steady_clock::now();
+//     // Create a Graph
+//     Graph graph;
+//     int count=1;
 
-    // Create a Graph
-    Graph graph;
+//     for(int file_no=1;file_no<=count;file_no++){
+//             auto start = chrono::steady_clock::now();
+//             string filename=FILENAME;
+//             filename+=to_string(file_no);
+//             filename+=".txt";
+//             std::cout<<filename<<endl;
+//             ifstream file(filename);
+//             string line;
+//             int line_count=0;
+//             int num_length=0;
+//             int temp=file_no;
+//             while(temp){
+//                 num_length++;
+//                 temp/=10;
+//             }
+//             int last=1;
+//             string statements="";
+//             while(getline(file,line)&&line_count<10000){
+//                 int i=4+num_length;
+//                 string x="";
+//                 while(line[i]!=',')x+=line[i++];
+//                 int code=stoi(x);
+//                 i=0;
+//                 while(line[i]!=')')i++;
+//                 i+=2;
+//                 string sentence=line.substr(i);
+//                 // std::cout<<sentence<<endl;
+//                 if(last!=code){
+//                     vector<string> words=rake(statements);
+//                     graph.add_node(words,file_no,line_count+1);
+//                     statements="";
+//                 }
+//                 statements+=sentence;
+//                 last=code;
+//                 line_count++;
+//                 // cout<<file_no<<" "<<code<<" "<<sentence<<endl;
+//             }
+//             file.close();
+//             auto end = chrono::steady_clock::now();
+//             std::cout << "Elapsed time in milliseconds: " << chrono::duration_cast<chrono::milliseconds>(end - start).count() << " ms" << endl;
+//         }
+//         graph.calculate_page_rank();
+//         vector<double> page_rank=graph.get_page_rank();
+//         cout<<"Page Rank of all the nodes"<<endl<<page_rank.size();
 
-    // Define a query
-    vector<string> query = rake(" the lazy dog");
-
-    // Define a list of sentences
-    vector<string> sentences = {
-        "I like foxes which are brown.",
-        "Do you know me?",
-        "I don't like foxes.",
-        "The lazy dog sleeps in the sun.",
-        "Foxes are known for their agility.",
-        
-    };
-
-    // Add sentences to the graph
-    for (int i = 0; i < sentences.size(); i++) {
-        graph.add_node(rake(sentences[i]), 0, i);
-    }
-
-    // Print the adjacency matrix of the graph
-    graph.print_all();
-
-    // Rank sentences based on the query
-    vector<double> sentenceScores = graph.doomsday(query);
-
-    // Output the ranked sentences
-    cout << "Ranked Sentences:" << endl;
-    for (int i = 0; i < sentenceScores.size(); i++) {
-        cout << "Sentence " << i << ": " << sentenceScores[i] << endl;
-    }
-
-    auto end = chrono::steady_clock::now();
-    cout << "Elapsed time in milliseconds: " << chrono::duration_cast<chrono::milliseconds>(end - start).count() << " ms" << endl;
-
-    return 0;
-}
+//     return 0;
+// }

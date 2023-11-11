@@ -208,7 +208,7 @@ class Heap{
 		return (i-1)/2;
 	}
 	void swap(T& a,T&b){
-		T& c=a;
+		T c=a;
 		a=b;
 		b=c;
 	}
@@ -221,7 +221,7 @@ class Heap{
 public:
 	Heap():size(0){}
 	void insert(T x){
-		if(size==0){heap.push_back(x);return;size++;}
+		if(size==0){heap.push_back(x);size++;return;}
 		heap.push_back(x);
 		size++;
 		size_t i=size-1;
@@ -242,7 +242,7 @@ public:
 		while(left(i)<size){
 			if(right(i)>=size){
 				if(heap[left(i)]<heap[i]){
-					swap(heap[left(i)]<heap[right(i)]);
+					swap(heap[left(i)],heap[(i)]);
 				}
 				break;
 			}
@@ -257,5 +257,14 @@ public:
 		if(size==0)return NULL;
 		return heap[0];
 	}
+    size_t get_size(){
+        return size;
+    }
+    void print(){
+        for(int i=0;i<size;i++){
+            cout<<heap[i]<<" ";
+        }
+        cout<<endl;
+    }
 };
 

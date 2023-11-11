@@ -7,10 +7,12 @@
 #include <vector>
 #include <iostream>
 #include <chrono>
+#include "textmap.cpp"
 using namespace std;
 
 struct Part_1{
-    int count =10;//Edit this for changing number of files
+    int count =2;//Edit this for changing number of files
+    Graph graph;
     Tries<pair<int,int>,int> trie;
     void extract_csv(){
         auto start = std::chrono::high_resolution_clock::now();
@@ -61,6 +63,8 @@ struct Part_1{
             int line_count=0;
             int num_length=0;
             int temp=file_no;
+            string present="";
+            int id=1;
             while(temp){
                 num_length++;
                 temp/=10;
@@ -75,9 +79,18 @@ struct Part_1{
                 i+=2;
                 string sentence=line.substr(i);
                 extract_file(sentence,file_no,code);
+                if(code!=id){
+                    vector<string> words=rake(present);
+                    graph.add_node(words,file_no,id);
+                    present="";
+                }
+                present+=sentence;
+                id=code;
                 line_count++;
                 // cout<<file_no<<" "<<code<<" "<<sentence<<endl;
             }
+            vector<string> words=rake(present);
+            graph.add_node(words,file_no,id);
             file.close();
         }
         auto stop = std::chrono::high_resolution_clock::now();
@@ -87,11 +100,38 @@ struct Part_1{
     Part_1(){
         insert_corpus();
         extract_csv();
+        graph.calculate_page_rank();
     }
     void update_avl(AVLMap<pair<int,int>,double>& scores,vector<pair<pair<int,int>,int>>& v,double total){
         for(auto x:v){
             scores.increase_by_x(x.first,x.second*total);
         }
+    }
+    double sqrt(double x){
+        double l=0,r=x;
+        while(r-l>1e-12){
+            double m=(l+r)/2;
+            if(m*m>x)r=m;
+            else l=m;
+        }
+        return l;
+    }
+    int get_top_k(vector<pair<pair<int,int>,double>>&v){
+        double m=0,ms=0;
+        for(auto x:v){
+            m+=x.second;
+            ms+=x.second*x.second;
+        }
+        m/=v.size();
+        ms/=v.size();
+        cout<<"mean:"<<m<<endl;
+        ms-=m*m;
+        ms=sqrt(ms);
+        cout<<"gadient:"<<ms<<endl;
+        int k=1;
+        while(k<v.size()&&(-v[k].second+v[k-1].second)>1.5*ms)k++;
+        return min(k,20);
+
     }
     void compute(string query){
         string ans="";
@@ -121,14 +161,31 @@ struct Part_1{
         }
         vector<pair<pair<int,int>,double>> v;
         scores.get_all(v);
+        vector<pair<pair<int,int>,double>> page_rank=graph.get_page_rank();
+        cout<<page_rank.size()<<endl<<v.size()<<endl;
+        for(int i=0,j=0;i<v.size();j++){
+            if(j<page_rank.size()&&page_rank[j].first==v[i].first){
+                v[i].second+=page_rank[j].second;
+                i++;
+            }
+            else if(j>=page_rank.size()){
+                v[i].second=0;
+            }
+        }
         sort(v.begin(),v.end(),[](pair<pair<int,int>,double> a,pair<pair<int,int>,double> b){
             return a.second>b.second;
         });
-        for(int i=0;i<min(5,(int)v.size());i++){
+        for(int i=0;i<min((int)v.size(),5);i++){
+            cout<<v[i].first.first<<" "<<v[i].first.second<<" "<<v[i].second<<endl;
+        }
+        int l=get_top_k(v);
+        cout<<l<<endl;
+        for(int i=0;i<l;i++){
             cout<<v[i].first.first<<" "<<v[i].first.second<<" "<<v[i].second<<endl;
         }
     }
 };
+
 int main(){
     Part_1 p;
     cout<<"next question?"<<"what should i learn from life"<<endl;
