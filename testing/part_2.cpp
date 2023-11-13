@@ -335,7 +335,7 @@ bool search(vector<string> word,string key){
     }
     return false;
 }
-vector<string> rake(string sentence){
+vector<pair<string,int>> rake(string sentence){
 
     vector<string>stop_words=vector<string>{"a", "about", "above", "after", "again", "against", "all", "am", "an", "and",
     "are", "as", "at", "be", "because", "been", "before", "between", "both", "but", "by",
@@ -363,18 +363,19 @@ vector<string> rake(string sentence){
     if(word != ""&&!search(stop_words,word))
     words.push_back(word);
     merge_sort(words,0,words.size()-1);
-    vector<string> ans;
+    vector<pair<string,int>> ans;
     if(words.size()==0)return ans;
-    ans.push_back(words[0]);
+    ans.push_back({words[0],1});
     for(int i=1;i<words.size();i++){
         if(words[i]!=words[i-1])
-        ans.push_back(words[i]);
+        ans.push_back({words[i],1});
+        else ans.back().second++;
     }
     return ans;
 }
 struct Graph_Node{
     int book_code,page,paragraph,total_words;
-    vector<string> words;
+    vector<pair<string,int>> words;
 };
 struct Graph{
     vector<Graph_Node*> nodes;
@@ -385,7 +386,7 @@ struct Graph{
         }
         return nullptr;
     }
-    void add_node(int book_code,int page,int paragraph,string word,int total_words){
+    void add_node(int book_code,int page,int paragraph,pair<string,int> word,int total_words){
         Graph_Node* check=search(book_code,page,paragraph);
         if(check){
             check->words.push_back(word);
@@ -399,19 +400,22 @@ struct Graph{
         temp->total_words=total_words;
         nodes.push_back(temp);
     }
-    int compare(const vector<string>& a,const vector<string>&b) const{
+    int compare(const vector<pair<string,int>>& a,const vector<pair<string,int>>&b) const{
         int i=0,j=0;
         int score=0;
         while(i<a.size()&&j<b.size()){
-            if(a[i]==b[j]){
+            if(a[i].first==b[j].first){
                 i++;
                 j++;
-                score++;
+                score+=a[i].second;
             }
-            else if(a[i]<b[j]){score+=3;i++;}
+            else if(a[i]<b[j]){score+=3*a[i].second;i++;}//TODO: improve this parameter
             else {j++;}
         }
-        score+=3*(a.size()-i);
+        while(i<a.size()){
+            score+=3*a[i].second;
+            i++;
+        }
         return score;
     }
     vector<pair<pair<int,pair<int,int>>,double>> get_score(){
@@ -450,15 +454,56 @@ struct Graph{
 };
 
 #include <bits/stdc++.h>
-void get_analysis(string query,QNA_tool& q){
-    vector<string> query_words=rake(query);
-    for(auto x:query_words){
-        cout<<x<<" ";
+
+void data_analysis(const vector<pair<pair<int,pair<int,int>>,double>>& scores){
+    double max_score=0,min_score=INT_MAX,s,sos=0;
+    for(auto x:scores){
+        max_score=max(max_score,(x.second));
+        min_score=min(min_score,(x.second));
+        s+=(x.second);
+        sos+=(x.second*x.second);
     }
+    s/=scores.size();
+    sos/=scores.size();
+    sos-=s*s;
+    cout<<"Number of elements: "<<scores.size()<<endl;
+    cout<<"Max score: "<<max_score<<endl;
+    cout<<"Min score: "<<min_score<<endl;
+    cout<<"Mean score: "<<s<<endl;
+    cout<<"Standard deviation: "<<sqrt(sos)<<endl;
+    cout<<"Range: "<<max_score-min_score<<endl;
+    
+}
+
+int choose_k(const vector<pair<pair<int,pair<int,int>>,double>>& scores){
+    double sum=0,sum_sq=0,threshold=sqrt(scores[0].second)/1e9,last=0;
+    for(int i=0;i<min(5,(int)scores.size());i++){
+        sum+=scores[i].second;
+        sum_sq+=scores[i].second*scores[i].second;
+    }
+    last=sum_sq/5-sum*sum/5/5;
+    for(int i=5;i<min(20,(int)scores.size());i++){
+        sum+=scores[i].second;
+        sum_sq+=scores[i].second*scores[i].second;
+        // cout<<"std for i="<<i<<" is "<<sum_sq/(i+1)-sum*sum/(i+1)/(i+1)<<endl;
+        if((sum_sq/(i+1)-sum*sum/(i+1)/(i+1))-last<0){
+            return i;
+        }
+        last=sum_sq/(i+1)-sum*sum/(i+1)/(i+1);
+    }
+    return min(20,(int)scores.size());
+}
+
+void get_analysis(string query,QNA_tool& q){
+    vector<pair<string,int>> query_words=rake(query);
+    for(auto x:query_words){
+        cout<<x.first<<" ";
+    }
+    cout<<endl;
     int number_of_nodes_per_word=400/(query_words.size()+1);
     Graph g;
     for(auto x:query_words){
-        Node* temp=q.get_top_k_para(x,number_of_nodes_per_word);
+        Node* temp=q.get_top_k_para(x.first,number_of_nodes_per_word);
         while(temp){
             g.add_node(temp->book_code,temp->page,temp->paragraph,x,q.counter->get({temp->book_code,{temp->page,temp->paragraph}}));
             temp=temp->right;
@@ -468,9 +513,11 @@ void get_analysis(string query,QNA_tool& q){
     sort(scores.begin(),scores.end(),[](pair<pair<int,pair<int,int>>,double> a,pair<pair<int,pair<int,int>>,double> b){
         return a.second>b.second;
     });
-    for(int i=0;i<min(scores.size(),(size_t)10);i++){
+    int k=choose_k(scores);
+    for(int i=0;i<k;i++){
         cout<<scores[i].first.first<<" "<<scores[i].first.second.first<<" "<<scores[i].first.second.second<<" "<<scores[i].second<<endl;
     }
+    // data_analysis(scores);
     
 }
 
@@ -710,7 +757,7 @@ void QNA_tool::query_llm(string filename, Node* root, int k, string API_KEY, str
 #include <chrono>
 int main(){
     auto start=chrono::high_resolution_clock::now();
-    int num_books = 5;
+    int num_books = 20;
     QNA_tool qna;
     for(int i = 1; i <= num_books; i++){
 
@@ -772,7 +819,7 @@ int main(){
     auto stop=chrono::high_resolution_clock::now();
     auto duration=chrono::duration_cast<chrono::microseconds>(stop-start);
     cout<<"Time taken to insert all sentences: "<<duration.count()<<" microseconds"<<endl;
-    string query="How was mahatma gandhi killed?";
+    string query="What were the views of Mahatma Gandhi on the Partition of India?";
     cout<<"Query: "<<query<<endl;
     start=chrono::high_resolution_clock::now();
     get_analysis(query,qna);
