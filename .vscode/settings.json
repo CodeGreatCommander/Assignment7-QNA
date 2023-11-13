@@ -1,5 +1,13 @@
 {
     "files.associations": {
-        "chrono": "cpp"
+        "chrono": "cpp",
+        "array": "cpp",
+        "*.tcc": "cpp",
+        "memory": "cpp",
+        "functional": "cpp",
+        "future": "cpp",
+        "istream": "cpp",
+        "tuple": "cpp",
+        "utility": "cpp"
     }
 }

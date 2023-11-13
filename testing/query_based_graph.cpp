@@ -75,14 +75,38 @@ vector<string> rake(string sentence){
     }
     return ans;
 }
+vector<string> merge(vector<string> words,vector<string>word2){
+    vector<string>ans;
+    int i=0,j=0;
+    while(i<words.size()&&j<word2.size()){
+        if(words[i]==word2[j]){
+            ans.push_back(words[i]);
+            i++;
+            j++;
+        }
+        else if(words[i]<word2[j])
+        {ans.push_back(words[i++]);}
+        else
+        {ans.push_back(word2[j++]);}
+    }
+    while(i<words.size()){
+        ans.push_back(words[i++]);
+    }
+    while(j<word2.size()){
+        ans.push_back(word2[j++]);
+    }
+    return ans;
+}
+
 
 struct Graph_Node{
     vector<string> words;
-    int book,para;
-    Graph_Node(vector<string> words,int book,int para){
+    int book,para,page;
+    Graph_Node(vector<string> words,int book,int para,int page){
         this->words=words;
         this->book=book;
         this->para=para;
+        this->page=page;
     }
 };
 struct Graph{
@@ -90,8 +114,12 @@ struct Graph{
 
 
     vector<Graph_Node*> nodes;
-    void add_node(vector<string>&words,int book,int para){
-        nodes.push_back(new Graph_Node(words,book,para));
+    void add_node(vector<string>&words,int book,int page,int para){
+        if(nodes.size()==0||nodes.back()->book!=book||nodes.back()->para!=para||nodes.back()->page!=page)
+        nodes.push_back(new Graph_Node(words,book,page,para));
+        else{
+            nodes.back()->words=merge(nodes.back()->words,words);
+        }
     }
     vector<vector<string>> get_words(vector<string>&query){
         vector<vector<string>> ans;
@@ -142,7 +170,7 @@ struct Graph{
         }
         return ans;
     }
-    vector<pair<pair<int,int>,double>> get_page_rank(string query){
+    vector<pair<pair<int,pair<int,int>>,double>> get_page_rank(string query){
         vector<string> words=rake(query);
         vector<vector<string>> words_in_nodes=get_words(words);
         vector<vector<double>> adj=get_adjancency_matrix(words_in_nodes);
@@ -164,9 +192,9 @@ struct Graph{
             }
             page_rank=temp;
         }
-        vector<pair<pair<int,int>,double>> ans;
+        vector<pair<pair<int,pair<int,int>>,double>> ans;
         for(int i=0;i<page_rank.size();i++){
-            ans.push_back({{nodes[i]->book,nodes[i]->para},page_rank[i]});
+            ans.push_back({{nodes[i]->book,{nodes[i]->page,nodes[i]->para}},page_rank[i]});
         }
         return ans;
     }
@@ -191,6 +219,7 @@ struct Graph{
 #define FILENAME "../MKGandhi/mahatma-gandhi-collected-works-volume-"
 #include <fstream>
 #include <algorithm>
+#include <sstream>
 int main() {
 
     // Create a Graph
@@ -213,27 +242,73 @@ int main() {
                 temp/=10;
             }
             int last=1;
-            string statements="";
-            while(getline(file,line)){
-                int i=4+num_length;
-                string x="";
-                while(line[i]!=',')x+=line[i++];
-                int code=stoi(x);
-                i=0;
-                while(line[i]!=')')i++;
-                i+=2;
-                string sentence=line.substr(i);
-                // std::cout<<sentence<<endl;
-                if(last!=code){
-                    vector<string> words=rake(statements);
-                    graph.add_node(words,file_no,line_count+1);
-                    statements="";
+            std::string tuple;
+            std::string sentence;
+            while (std::getline(file, tuple, ')') && std::getline(file, sentence)) {
+                // Get a line in the sentence
+                tuple += ')';
+
+                std::vector<int> metadata;    
+                std::istringstream iss(tuple);
+
+                // Temporary variables for parsing
+                std::string token;
+
+                // Ignore the first character (the opening parenthesis)
+                iss.ignore(1);
+
+                // Parse and convert the elements to integers
+                while (std::getline(iss, token, ',')) {
+                    // Trim leading and trailing white spaces
+                    size_t start = token.find_first_not_of(" ");
+                    size_t end = token.find_last_not_of(" ");
+                    if (start != std::string::npos && end != std::string::npos) {
+                        token = token.substr(start, end - start + 1);
+                    }
+                    
+                    // Check if the element is a number or a string
+                    if (token[0] == '\'') {
+                        // Remove the single quotes and convert to integer
+                        int num = std::stoi(token.substr(1, token.length() - 2));
+                        metadata.push_back(num);
+                    } else {
+                        // Convert the element to integer
+                        int num = std::stoi(token);
+                        metadata.push_back(num);
+                    }
                 }
-                statements+=sentence;
-                last=code;
+                vector<string> words=rake(sentence);
+                graph.add_node(words,metadata[0],metadata[1],metadata[2]);
                 line_count++;
-                // cout<<file_no<<" "<<code<<" "<<sentence<<endl;
+
             }
+
+            // Now we have the string in sentence
+            // And the other info in metadata
+            // Add to the dictionary
+
+            // Insert in the qna_tool
+            // string statements="";
+            // while(getline(file,line)){
+            //     int i=4+num_length;
+            //     string x="";
+            //     while(line[i]!=',')x+=line[i++];
+            //     int code=stoi(x);
+            //     i=0;
+            //     while(line[i]!=')')i++;
+            //     i+=2;
+            //     string sentence=line.substr(i);
+            //     // std::cout<<sentence<<endl;
+            //     if(last!=code){
+            //         vector<string> words=rake(statements);
+            //         graph.add_node(words,file_no,line_count+1);
+            //         statements="";
+            //     }
+            //     statements+=sentence;
+            //     last=code;
+            //     line_count++;
+            //     // cout<<file_no<<" "<<code<<" "<<sentence<<endl;
+            // }
             file.close();
             auto end = chrono::steady_clock::now();
             std::cout << "Elapsed time in milliseconds: " << chrono::duration_cast<chrono::milliseconds>(end - start).count() << " ms" << endl;
@@ -241,12 +316,12 @@ int main() {
         string query="what was mahatma gandhi killed by a child";
         cout<<"Query: "<<query<<endl;
         auto start = chrono::steady_clock::now();
-        vector<pair<pair<int,int>,double>> ans=graph.get_page_rank(query);
-        sort(ans.begin(),ans.end(),[](pair<pair<int,int>,double> a,pair<pair<int,int>,double> b){
+        vector<pair<pair<int,pair<int,int>>,double>> ans=graph.get_page_rank(query);
+        sort(ans.begin(),ans.end(),[](pair<pair<int,pair<int,int>>,double> a,pair<pair<int,pair<int,int>>,double> b){
             return a.second>b.second;
         });
         for(int i=0;i<min(10,(int)ans.size());i++){
-            cout<<ans[i].first.first<<" "<<ans[i].first.second<<" "<<ans[i].second<<endl;
+            cout<<"Page Rank: "<<i<<" Page:"<<ans[i].first.second.first<<" Para:"<<ans[i].first.second.second<<" Book:"<<ans[i].first.first<<" Score:"<<ans[i].second<<endl;
         }
         cout<<endl;
         auto end = chrono::steady_clock::now();

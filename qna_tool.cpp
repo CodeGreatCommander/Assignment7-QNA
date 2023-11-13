@@ -301,7 +301,6 @@ Node* QNA_tool::get_top_k_para(string query, int k) {
         vector<pair<pair<int,pair<int,int>>,double>> v;
         scores.get_all(v);
         Heap<pair<double,pair<int,pair<int,int>>>> heap;
-		cout<<v.size()<<" "<<k<<endl;
         for(auto x:v){
             if(heap.get_size()<k)heap.insert({x.second,x.first});
             else if(heap.get_top().first<x.second){
@@ -335,7 +334,7 @@ std::string QNA_tool::get_paragraph(int book_code, int page, int paragraph){
 
     cout << "Book_code: " << book_code << " Page: " << page << " Paragraph: " << paragraph << endl;
     
-    std::string filename = "MKGandhi/mahatma-gandhi-collected-works-volume-";
+    std::string filename = "mahatma-gandhi-collected-works-volume-";
     filename += to_string(book_code);
     filename += ".txt";
 
