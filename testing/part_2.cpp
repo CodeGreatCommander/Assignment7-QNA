@@ -337,12 +337,12 @@ bool search(vector<string> word,string key){
 }
 vector<pair<string,int>> rake(string sentence){
 
-    vector<string>stop_words=vector<string>{"a", "about", "above", "after", "again", "against", "all", "am", "an", "and",
-    "are", "as", "at", "be", "because", "been", "before", "between", "both", "but", "by",
-    "can't", "did","do", "does", "doing", "don't", "down", "during", "each", "for", "from",
+    vector<string>stop_words=vector<string>{"a", "about", "above", "after", "again","all", "am", "an", "and",
+    "are", "as", "at", "be", "because", "been", "before", "both", "but", "by",
+    "can't", "did","do", "does", "don't", "down", "during", "each", "for", "from",
     "had", "has", "have", "he", "here", "hers", "herself", "him", "himself", "his","how",
-    "i", "if", "in", "into", "is", "it", "its", "itself", "let's", "more", "my",
-    "no", "nor", "not", "of", "on", "once", "only", "or", "our", "ours", "ourselves", "out",
+    "i", "if", "in", "into", "is", "it", "its", "itself", "let's", "my",
+    "no", "nor", "not", "of", "on", "or", "our", "ours", "ourselves", "out",
     "over", "own", "same", "she", "should", "so", "some", "than", "that", "the", "their",
     "them", "themselves", "then", "there", "these", "they", "this", "through", "to", "too",
     "under", "until", "up", "very","vol", "was", "we", "were", "what", "when", "where", "which",
@@ -494,7 +494,7 @@ int choose_k(const vector<pair<pair<int,pair<int,int>>,double>>& scores){
     return min(20,(int)scores.size());
 }
 
-void get_analysis(string query,QNA_tool& q){
+pair<Node*,int> get_analysis(string query,QNA_tool& q){
     vector<pair<string,int>> query_words=rake(query);
     for(auto x:query_words){
         cout<<x.first<<" ";
@@ -514,9 +514,17 @@ void get_analysis(string query,QNA_tool& q){
         return a.second>b.second;
     });
     int k=choose_k(scores);
-    for(int i=0;i<k;i++){
-        cout<<scores[i].first.first<<" "<<scores[i].first.second.first<<" "<<scores[i].first.second.second<<" "<<scores[i].second<<endl;
+    Node* head=nullptr;
+    for(int i=k-1;i>=0;i--){
+        Node* temp=new Node();
+        temp->book_code=scores[i].first.first;
+        temp->page=scores[i].first.second.first;
+        temp->paragraph=scores[i].first.second.second;
+        temp->right=head;
+        if(head)head->left=temp;
+        head=temp;
     }
+    return {head,k};
     // data_analysis(scores);
     
 }
@@ -609,10 +617,8 @@ Node* QNA_tool::get_top_k_para(string query, int k) {
 }
 
 void QNA_tool::query(string question, string filename){
-    // Implement your function here  
-    std::cout << "Q: " << question << std::endl;
-    std::cout << "A: " << "Studying COL106 :)" << std::endl;
-    return;
+    pair<Node*,int> x=get_analysis(question,*this);
+    query_llm(filename,x.first,x.second,"gpt3_api_key",question);   
 }
 
 std::string QNA_tool::get_paragraph(int book_code, int page, int paragraph){
