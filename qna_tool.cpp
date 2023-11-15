@@ -276,6 +276,40 @@ bool search(vector<string> word,string key){
     }
     return false;
 }
+void get_keywords(vector<pair<string,int>>& sentences){
+    string sentence="Extract all the keywords out of the given words in the right form and add at max 4 more keywords which are similar to it and also give all of them a integral score based on their importance and in response only give keywords in each line separated from their score by a space after and all words in small and nothing else except keyword and score, here are the words: \n";
+    for(auto x:sentences)sentence+=x.first+" ";
+    ofstream outfile("query.txt");
+    outfile <<sentence;
+    outfile.close();
+    string command = "python3 ";
+    command += "api_call.py";
+    command += " ";
+    command +="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" ;
+    command += " ";
+    command += "0";
+    command += " ";
+    command += "query.txt";
+    system(command.c_str());
+    sentences.clear();
+    ifstream file("response.txt");
+    string line;
+    while(getline(file,line)){
+        string word="";
+        int i=0;
+        while(line[i]!=' '){
+            word+=line[i];
+            i++;
+        }
+        i++;
+        int score=0;
+        while(i<line.size()){
+            score=score*10+(line[i]-'0');
+            i++;
+        }
+        sentences.push_back({word,score});
+    }
+}
 vector<pair<string,int>> rake(string sentence){
 
     vector<string>stop_words=vector<string>{"a", "about", "above", "after", "again","all", "am", "an", "and",
@@ -394,49 +428,92 @@ struct Graph{
     }
 };
 
-#include <bits/stdc++.h>
+// #include <bits/stdc++.h>
 
-void data_analysis(const vector<pair<pair<int,pair<int,int>>,double>>& scores){
-    double max_score=0,min_score=INT_MAX,s,sos=0;
-    for(auto x:scores){
-        max_score=max(max_score,(x.second));
-        min_score=min(min_score,(x.second));
-        s+=(x.second);
-        sos+=(x.second*x.second);
-    }
-    s/=scores.size();
-    sos/=scores.size();
-    sos-=s*s;
-    cout<<"Number of elements: "<<scores.size()<<endl;
-    cout<<"Max score: "<<max_score<<endl;
-    cout<<"Min score: "<<min_score<<endl;
-    cout<<"Mean score: "<<s<<endl;
-    cout<<"Standard deviation: "<<sqrt(sos)<<endl;
-    cout<<"Range: "<<max_score-min_score<<endl;
+// void data_analysis(const vector<pair<pair<int,pair<int,int>>,double>>& scores){
+//     double max_score=0,min_score=INT_MAX,s,sos=0;
+//     for(auto x:scores){
+//         max_score=max(max_score,(x.second));
+//         min_score=min(min_score,(x.second));
+//         s+=(x.second);
+//         sos+=(x.second*x.second);
+//     }
+//     s/=scores.size();
+//     sos/=scores.size();
+//     sos-=s*s;
+//     cout<<"Number of elements: "<<scores.size()<<endl;
+//     cout<<"Max score: "<<max_score<<endl;
+//     cout<<"Min score: "<<min_score<<endl;
+//     cout<<"Mean score: "<<s<<endl;
+//     cout<<"Standard deviation: "<<sqrt(sos)<<endl;
+//     cout<<"Range: "<<max_score-min_score<<endl;
     
+// }
+
+// int choose_k(const vector<pair<pair<int,pair<int,int>>,double>>& scores){
+//     double sum=0,sum_sq=0,threshold=sqrt(scores[0].second)/1e9,last=0;
+//     for(int i=0;i<min(10,(int)scores.size());i++){
+//         sum+=scores[i].second;
+//         sum_sq+=scores[i].second*scores[i].second;
+//     }
+//     last=sum_sq/10-sum*sum/10/10;
+//     for(int i=10;i<min(20,(int)scores.size());i++){
+//         sum+=scores[i].second;
+//         sum_sq+=scores[i].second*scores[i].second;
+//         // cout<<"std for i="<<i<<" is "<<sum_sq/(i+1)-sum*sum/(i+1)/(i+1)<<endl;
+//         if((sum_sq/(i+1)-sum*sum/(i+1)/(i+1))-last<0){
+//             return i;
+//         }
+//         last=sum_sq/(i+1)-sum*sum/(i+1)/(i+1);
+//     }
+//     return min(20,(int)scores.size());
+// }
+
+Node* get_top_k_single_word(int k,string word,QNA_tool& q){
+	vector<pair<pair<int,pair<int,int>>,int>> v;
+	q.trie->get(word,0)->data.get_all(v);
+	if(v.size()==0)return nullptr;
+	Heap<pair<int,pair<int,pair<int,int>>>> heap;
+	for(auto x:v){
+		if(heap.get_size()<k)heap.insert({x.second,x.first});
+		else if(heap.get_top().first<x.second){
+			heap.pop();
+			heap.insert({x.second,x.first});
+		}
+	}
+	Node* head=nullptr;
+	while(heap.get_size()){
+		Node* temp=new Node();
+		temp->book_code=heap.get_top().second.first;
+		temp->page=heap.get_top().second.second.first;
+		temp->paragraph=heap.get_top().second.second.second;
+		temp->right=head;
+		if(head)head->left=temp;
+		head=temp;
+		heap.pop();
+	}
+	return head;
 }
 
-int choose_k(const vector<pair<pair<int,pair<int,int>>,double>>& scores){
-    double sum=0,sum_sq=0,threshold=sqrt(scores[0].second)/1e9,last=0;
-    for(int i=0;i<min(10,(int)scores.size());i++){
-        sum+=scores[i].second;
-        sum_sq+=scores[i].second*scores[i].second;
+void merge_sort(vector<pair<pair<int,pair<int,int>>,double>>&a,int s,int e){
+    if(s>=e)return;
+    int mid=(s+e)/2;
+    merge_sort(a,s,mid);
+    merge_sort(a,mid+1,e);
+    vector<pair<pair<int,pair<int,int>>,double>> temp;
+    int i=s,j=mid+1;
+    while(i<=mid&&j<=e){
+        if(a[i].second>a[j].second)temp.push_back(a[i++]);
+        else temp.push_back(a[j++]);
     }
-    last=sum_sq/10-sum*sum/10/10;
-    for(int i=10;i<min(20,(int)scores.size());i++){
-        sum+=scores[i].second;
-        sum_sq+=scores[i].second*scores[i].second;
-        // cout<<"std for i="<<i<<" is "<<sum_sq/(i+1)-sum*sum/(i+1)/(i+1)<<endl;
-        if((sum_sq/(i+1)-sum*sum/(i+1)/(i+1))-last<0){
-            return i;
-        }
-        last=sum_sq/(i+1)-sum*sum/(i+1)/(i+1);
-    }
-    return min(20,(int)scores.size());
+    while(i<=mid)temp.push_back(a[i++]);
+    while(j<=e)temp.push_back(a[j++]);
+    for(int i=s;i<=e;i++)a[i]=temp[i-s];
 }
 
 pair<Node*,int> get_analysis(string query,QNA_tool& q){
     vector<pair<string,int>> query_words=rake(query);
+    // get_keywords(query_words);
     for(auto x:query_words){
         cout<<x.first<<" ";
     }
@@ -444,7 +521,7 @@ pair<Node*,int> get_analysis(string query,QNA_tool& q){
     int number_of_nodes_per_word=400/(query_words.size()+1);
     Graph g;
     for(auto x:query_words){
-        Node* temp=q.get_top_k_para(x.first,5*number_of_nodes_per_word);
+        Node* temp=get_top_k_single_word(number_of_nodes_per_word,x.first,q);
 		int c=0;
         while(temp&&c<number_of_nodes_per_word){
 			if(q.counter->get({temp->book_code,{temp->page,temp->paragraph}})>15){
@@ -455,20 +532,33 @@ pair<Node*,int> get_analysis(string query,QNA_tool& q){
         }
     }
     vector<pair<pair<int,pair<int,int>>,double>> scores=g.get_score();
-    sort(scores.begin(),scores.end(),[](pair<pair<int,pair<int,int>>,double> a,pair<pair<int,pair<int,int>>,double> b){
-        return a.second>b.second;
-    });
-    int k=choose_k(scores);
-    Node* head=nullptr;
-    for(int i=k-1;i>=0;i--){
-        Node* temp=new Node();
-        temp->book_code=scores[i].first.first;
-        temp->page=scores[i].first.second.first;
-        temp->paragraph=scores[i].first.second.second;
-        temp->right=head;
-        if(head)head->left=temp;
-        head=temp;
-    }
+    merge_sort(scores,0,scores.size()-1);
+    // int k=choose_k(scores);
+    // Node* head=nullptr;
+    // for(int i=k-1;i>=0;i--){
+    //     Node* temp=new Node();
+    //     temp->book_code=scores[i].first.first;
+    //     temp->page=scores[i].first.second.first;
+    //     temp->paragraph=scores[i].first.second.second;
+    //     temp->right=head;
+    //     if(head)head->left=temp;
+    //     head=temp;
+    // }
+	Node* head=nullptr;
+	int k=0,c=0;
+	for(auto x:scores){
+		if(c+q.counter->get(x.first)<=2000){
+			Node* temp=new Node();
+			temp->book_code=x.first.first;
+			temp->page=x.first.second.first;
+			temp->paragraph=x.first.second.second;
+			temp->right=head;
+			if(head)head->left=temp;
+			head=temp;
+			k++;
+			c+=q.counter->get(x.first);
+		}
+	}
     return {head,k};
     // data_analysis(scores);
     
@@ -570,7 +660,7 @@ std::string QNA_tool::get_paragraph(int book_code, int page, int paragraph){
 
     cout << "Book_code: " << book_code << " Page: " << page << " Paragraph: " << paragraph << endl;
     
-    std::string filename = "MKGandhi/mahatma-gandhi-collected-works-volume-";
+    std::string filename = "mahatma-gandhi-collected-works-volume-";
     filename += to_string(book_code);
     filename += ".txt";
 
@@ -685,7 +775,7 @@ void QNA_tool::query_llm(string filename, Node* root, int k, string API_KEY, str
     // you do not need to necessarily provide k paragraphs - can configure yourself
 
     // python3 <filename> API_KEY num_paragraphs query.txt
-    string command = "python ";
+    string command = "python3 ";
     command += filename;
     command += " ";
     command += API_KEY;

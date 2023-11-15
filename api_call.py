@@ -46,4 +46,10 @@ if __name__ == '__main__':
     )
 
     reply = chat.choices[0].message.content
+    try:
+        with open("response.txt", 'w') as file:
+            file.write(reply)
+        print("Data has been written to the file successfully!")
+    except IOError:
+        print("An error occurred while writing to the file.")
     print(reply)

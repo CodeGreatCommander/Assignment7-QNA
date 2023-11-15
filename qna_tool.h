@@ -15,7 +15,6 @@ class AVLMap;
 class QNA_tool {
 
 private:
-    Tries<pair<int,pair<int,int>>,int> *trie;
     void update_avl(AVLMap<pair<int,pair<int,int>>,double>& scores,vector<pair<pair<int,pair<int,int>>,int>>& v,double total);
     // You are free to change the implementation of this function
     void query_llm(string filename, Node* root, int k, string API_KEY, string question);
@@ -28,7 +27,7 @@ private:
     // You can add attributes/helper functions here
     void extract_csv();
 public:
-
+        Tries<pair<int,pair<int,int>>,int> *trie;
     /* Please do not touch the attributes and
     functions within the guard lines placed below  */
     /* ------------------------------------------- */

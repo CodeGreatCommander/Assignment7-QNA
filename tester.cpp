@@ -83,23 +83,23 @@ int main(){
     */
 
     // Let's try to ask a simple question to the qna_tool
-    Node* head = qna_tool.get_top_k_para(question, 5);
+    // Node* head = qna_tool.get_top_k_para(question, 5);
 
-    vector<string> paras;
-    while(head != nullptr){
-        string res = qna_tool.get_paragraph(head->book_code, head->page, head->paragraph);
-        paras.push_back(res);
-        head = head->right;
-    }
+    // vector<string> paras;
+    // while(head != nullptr){
+    //     string res = qna_tool.get_paragraph(head->book_code, head->page, head->paragraph);
+    //     paras.push_back(res);
+    //     head = head->right;
+    // }
 
-    for(int i = 0; i < (int)paras.size(); i++){
-        cout << paras[i] << endl << endl << endl;
-    }
+    // for(int i = 0; i < (int)paras.size(); i++){
+    //     cout << paras[i] << endl << endl << endl;
+    // }
 
     /*
         Part-2 : Query the LLM
     */
-    qna_tool.query(question, "api_call.py");
+    // qna_tool.query(question, "api_call.py");
     
     return 0;
 }
