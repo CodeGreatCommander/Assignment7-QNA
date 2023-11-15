@@ -241,30 +241,268 @@ public:
 };
 
 
+//Rake Implementation
+void merge_sort(vector<string>& words,int i,int j){
+    if(j<=i)return;
+    int mid=(i+j)/2;
+    merge_sort(words,i,mid);
+    merge_sort(words,mid+1,j);
+    vector<string> temp;
+    int l=i,r=mid+1;
+    while(l<=mid&&r<=j){
+        if(words[l]<words[r])
+        temp.push_back(words[l++]);
+        else
+        temp.push_back(words[r++]);
+    }
+    while(l<=mid)
+    temp.push_back(words[l++]);
+    while(r<=j)
+    temp.push_back(words[r++]);
+    l=i;
+    for(int i=l;i<=j;i++)
+    words[i]=temp[i-l];
+}
+bool search(vector<string> word,string key){
+    int u=word.size()-1,l=0;
+    while(l<=u){
+        int mid=(l+u)/2;
+        if(word[mid]==key)
+        return true;
+        else if(word[mid]<key)
+        l=mid+1;
+        else
+        u=mid-1;
+    }
+    return false;
+}
+vector<pair<string,int>> rake(string sentence){
+
+    vector<string>stop_words=vector<string>{"a", "about", "above", "after", "again","all", "am", "an", "and",
+    "are", "as", "at", "be", "because", "been", "before", "both", "but", "by",
+    "can't", "did","do", "does", "don't", "down", "during", "each", "for", "from","gandhi","gandhis",
+    "had", "has", "have", "he", "here", "hers", "herself", "him", "himself", "his","how",
+    "i", "if", "in", "into", "is", "it", "its", "itself", "let's","mahatma","mahatmas", "my",
+    "no", "nor", "not", "of", "on", "or", "our", "ours", "ourselves", "out",
+    "over", "own", "same", "she", "should", "so", "some", "than", "that", "the", "their",
+    "them", "themselves", "then", "there", "these", "they", "this", "through", "to", "too",
+    "under", "until", "up", "very","vol", "was", "we", "were", "what", "when", "where", "which",
+    "while", "who", "why", "will", "with", "you", "your", "yours", "yourself", "yourselves"};
+    //TODO:make a good hash table for stop words
+    vector<string> words;
+    string word = "",separators=" ,.?!:;\"\'[]{}()";
+    for (auto x : sentence) {
+        if (separators.find(x) != string::npos) {
+            if(word != ""&&!search(stop_words,word))
+            words.push_back(word);                
+            word = "";
+        }
+        else {
+            word = word + (char)(x<='Z'&&x>='A'?x+32:x); // to lower case
+        }
+    }
+    if(word != ""&&!search(stop_words,word))
+    words.push_back(word);
+    merge_sort(words,0,words.size()-1);
+    vector<pair<string,int>> ans;
+    if(words.size()==0)return ans;
+    ans.push_back({words[0],1});
+    for(int i=1;i<words.size();i++){
+        if(words[i]!=words[i-1])
+        ans.push_back({words[i],1});
+        else ans.back().second++;
+    }
+    return ans;
+}
+struct Graph_Node{
+    int book_code,page,paragraph,total_words;
+    vector<pair<string,int>> words;
+};
+struct Graph{
+    vector<Graph_Node*> nodes;
+    Graph_Node* search(int b_c,int pag,int par){
+        for(auto x:nodes){
+            if(x->book_code==b_c&&x->page==pag&&x->paragraph==par)
+            return x;
+        }
+        return nullptr;
+    }
+    void add_node(int book_code,int page,int paragraph,pair<string,int> word,int total_words){
+        Graph_Node* check=search(book_code,page,paragraph);
+        if(check){
+            check->words.push_back(word);
+            return;
+        }
+        Graph_Node* temp=new Graph_Node();
+        temp->book_code=book_code;
+        temp->page=page;
+        temp->paragraph=paragraph;
+        temp->words.push_back(word);
+        temp->total_words=total_words;
+        nodes.push_back(temp);
+    }
+    int compare(const vector<pair<string,int>>& a,const vector<pair<string,int>>&b) const{
+        int i=0,j=0;
+        int score=0;
+        while(i<a.size()&&j<b.size()){
+            if(a[i].first==b[j].first){
+                i++;
+                j++;
+                score+=a[i].second;
+            }
+            else if(a[i]<b[j]){score+=3*a[i].second;i++;}//TODO: improve this parameter
+            else {j++;}
+        }
+        while(i<a.size()){
+            score+=3*a[i].second;
+            i++;
+        }
+        return score;
+    }
+    vector<pair<pair<int,pair<int,int>>,double>> get_score(){
+        vector<double> score(nodes.size(),1.0/nodes.size());
+        vector<vector<double>> adj_mat=vector<vector<double>>(nodes.size(),vector<double>(nodes.size(),0));
+        for(int i=0;i<nodes.size();i++){
+            for(int j=0;j<nodes.size();j++){
+                adj_mat[i][j]=compare(nodes[j]->words,nodes[i]->words)/(nodes[j]->total_words+1.0);
+            }
+        }
+        for(int i=0;i<nodes.size();i++){
+            double sum=0;
+            for(int j=0;j<nodes.size();j++){
+                sum+=adj_mat[i][j];
+            }
+            if(sum!=0)
+            for(int j=0;j<nodes.size();j++){
+                adj_mat[i][j]/=sum;
+            }
+        }
+        for(int i=0;i<10;i++){
+            vector<double> temp(nodes.size(),0);
+            for(int j=0;j<nodes.size();j++){
+                for(int k=0;k<nodes.size();k++){
+                    temp[j]+=score[k]*adj_mat[k][j];
+                }
+            }
+            score=temp;
+        }
+        vector<pair<pair<int,pair<int,int>>,double>> ans;
+        for(int i=0;i<nodes.size();i++){
+            ans.push_back({{nodes[i]->book_code,{nodes[i]->page,nodes[i]->paragraph}},score[i]});
+        }
+        return ans;
+    }
+};
+
+#include <bits/stdc++.h>
+
+void data_analysis(const vector<pair<pair<int,pair<int,int>>,double>>& scores){
+    double max_score=0,min_score=INT_MAX,s,sos=0;
+    for(auto x:scores){
+        max_score=max(max_score,(x.second));
+        min_score=min(min_score,(x.second));
+        s+=(x.second);
+        sos+=(x.second*x.second);
+    }
+    s/=scores.size();
+    sos/=scores.size();
+    sos-=s*s;
+    cout<<"Number of elements: "<<scores.size()<<endl;
+    cout<<"Max score: "<<max_score<<endl;
+    cout<<"Min score: "<<min_score<<endl;
+    cout<<"Mean score: "<<s<<endl;
+    cout<<"Standard deviation: "<<sqrt(sos)<<endl;
+    cout<<"Range: "<<max_score-min_score<<endl;
+    
+}
+
+int choose_k(const vector<pair<pair<int,pair<int,int>>,double>>& scores){
+    double sum=0,sum_sq=0,threshold=sqrt(scores[0].second)/1e9,last=0;
+    for(int i=0;i<min(10,(int)scores.size());i++){
+        sum+=scores[i].second;
+        sum_sq+=scores[i].second*scores[i].second;
+    }
+    last=sum_sq/10-sum*sum/10/10;
+    for(int i=10;i<min(20,(int)scores.size());i++){
+        sum+=scores[i].second;
+        sum_sq+=scores[i].second*scores[i].second;
+        // cout<<"std for i="<<i<<" is "<<sum_sq/(i+1)-sum*sum/(i+1)/(i+1)<<endl;
+        if((sum_sq/(i+1)-sum*sum/(i+1)/(i+1))-last<0){
+            return i;
+        }
+        last=sum_sq/(i+1)-sum*sum/(i+1)/(i+1);
+    }
+    return min(20,(int)scores.size());
+}
+
+pair<Node*,int> get_analysis(string query,QNA_tool& q){
+    vector<pair<string,int>> query_words=rake(query);
+    for(auto x:query_words){
+        cout<<x.first<<" ";
+    }
+    cout<<endl;
+    int number_of_nodes_per_word=400/(query_words.size()+1);
+    Graph g;
+    for(auto x:query_words){
+        Node* temp=q.get_top_k_para(x.first,5*number_of_nodes_per_word);
+		int c=0;
+        while(temp&&c<number_of_nodes_per_word){
+			if(q.counter->get({temp->book_code,{temp->page,temp->paragraph}})>15){
+				g.add_node(temp->book_code,temp->page,temp->paragraph,x,q.counter->get({temp->book_code,{temp->page,temp->paragraph}}));
+				c++;
+			}
+			temp=temp->right;
+        }
+    }
+    vector<pair<pair<int,pair<int,int>>,double>> scores=g.get_score();
+    sort(scores.begin(),scores.end(),[](pair<pair<int,pair<int,int>>,double> a,pair<pair<int,pair<int,int>>,double> b){
+        return a.second>b.second;
+    });
+    int k=choose_k(scores);
+    Node* head=nullptr;
+    for(int i=k-1;i>=0;i--){
+        Node* temp=new Node();
+        temp->book_code=scores[i].first.first;
+        temp->page=scores[i].first.second.first;
+        temp->paragraph=scores[i].first.second.second;
+        temp->right=head;
+        if(head)head->left=temp;
+        head=temp;
+    }
+    return {head,k};
+    // data_analysis(scores);
+    
+}
+
+
 QNA_tool::QNA_tool(){
     // Implement your function here
 	trie=new Tries<pair<int,pair<int,int>>,int>();
+    counter=new AVLMap<pair<int,pair<int,int>>,int>();
 	extract_csv();
 }
 
 QNA_tool::~QNA_tool(){
     // Implement your function here  
 	delete trie;
+    delete counter;
 }
 
 void QNA_tool::insert_sentence(int book_code, int page, int paragraph, int sentence_no, string sentence){
     string ans="";
+    int count=0;
     for (int i=0,l=sentence.size();i<l;i++){
         string x=" .,-:!\"\'()?—[]“”‘’˙;@";
         if(x.find(sentence[i])!=string::npos){
             if(ans.size()!=0)
-            trie->increase_by_1(ans,{book_code,{page,paragraph}},0);
+            {trie->increase_by_1(ans,{book_code,{page,paragraph}},0);count++;}
             ans="";	
         }
     else ans+=sentence[i]>='A'&&sentence[i]<='Z'?(char)(sentence[i]-'A'+'a'):sentence[i];//check complexity and handle upper case number issues
     }
     if(ans.size()!=0)
-    trie->increase_by_1(ans,{book_code,{page,paragraph}},0);
+    {trie->increase_by_1(ans,{book_code,{page,paragraph}},0);count++;}
+    counter->increase_by_x({book_code,{page,paragraph}},count);
     return;
 }
 void QNA_tool::update_avl(AVLMap<pair<int,pair<int,int>>,double>& scores,vector<pair<pair<int,pair<int,int>>,int>>& v,double total){
@@ -324,17 +562,15 @@ Node* QNA_tool::get_top_k_para(string query, int k) {
 }
 
 void QNA_tool::query(string question, string filename){
-    // Implement your function here  
-    std::cout << "Q: " << question << std::endl;
-    std::cout << "A: " << "Studying COL106 :)" << std::endl;
-    return;
+    pair<Node*,int> x=get_analysis(question,*this);
+    query_llm(filename,x.first,x.second,"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",question);   
 }
 
 std::string QNA_tool::get_paragraph(int book_code, int page, int paragraph){
 
     cout << "Book_code: " << book_code << " Page: " << page << " Paragraph: " << paragraph << endl;
     
-    std::string filename = "mahatma-gandhi-collected-works-volume-";
+    std::string filename = "MKGandhi/mahatma-gandhi-collected-works-volume-";
     filename += to_string(book_code);
     filename += ".txt";
 
@@ -449,7 +685,7 @@ void QNA_tool::query_llm(string filename, Node* root, int k, string API_KEY, str
     // you do not need to necessarily provide k paragraphs - can configure yourself
 
     // python3 <filename> API_KEY num_paragraphs query.txt
-    string command = "python3 ";
+    string command = "python ";
     command += filename;
     command += " ";
     command += API_KEY;

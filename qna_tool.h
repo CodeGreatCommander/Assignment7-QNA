@@ -58,4 +58,5 @@ public:
     /* Please do not touch the code above this line */
 
     // You can add attributes/helper functions here
+    AVLMap<pair<int,pair<int,int>>,int>* counter;
 };

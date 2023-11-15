@@ -339,9 +339,9 @@ vector<pair<string,int>> rake(string sentence){
 
     vector<string>stop_words=vector<string>{"a", "about", "above", "after", "again","all", "am", "an", "and",
     "are", "as", "at", "be", "because", "been", "before", "both", "but", "by",
-    "can't", "did","do", "does", "don't", "down", "during", "each", "for", "from",
+    "can't", "did","do", "does", "don't", "down", "during", "each", "for", "from","gandhi",
     "had", "has", "have", "he", "here", "hers", "herself", "him", "himself", "his","how",
-    "i", "if", "in", "into", "is", "it", "its", "itself", "let's", "my",
+    "i", "if", "in", "into", "is", "it", "its", "itself", "let's","mahatma" ,"my",
     "no", "nor", "not", "of", "on", "or", "our", "ours", "ourselves", "out",
     "over", "own", "same", "she", "should", "so", "some", "than", "that", "the", "their",
     "them", "themselves", "then", "there", "these", "they", "this", "through", "to", "too",

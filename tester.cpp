@@ -8,7 +8,7 @@ int main(){
 
     QNA_tool qna_tool;
 
-    int num_books = 10;
+    int num_books = 98;
 
     for(int i = 1; i <= num_books; i++){
 
